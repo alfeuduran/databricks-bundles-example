@@ -1,0 +1,383 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: "This template creates a sample AWS CodePipeline for Databricks Asset Bundles (DABs) solution"
+Parameters:
+  RepositoryName:
+    Description: 'The name of CodeCommit repository that is used for storing DABs source code'
+    Type: String
+    Default: <Replace-With-Your-Own-Value, Eg my-ic-repo>
+  RepoBranch:
+    Description: The name of branch that will trigger the CodePipeline run.
+    Type: String
+    Default: <Replace-With-Your-Own-Value, Eg main>
+  SecretManagerArn:
+    Description: Use this AWS SecretManager to store the Databricks PAT token
+    Type: String
+  DevWorkspaceURL:
+    Description: The URL of Databricks Dev workspace
+    Type: String
+    Default: https://<dev_workspace_id>.cloud.databricks.com
+  ProdWorkspaceURL:
+    Description: The URL of Databricks Prod workspace
+    Type: String
+    Default: https://<prod_workspace_id>.cloud.databricks.com
+
+    
+
+Resources:
+  PipelineArtifactStoreBucket:
+    Type: 'AWS::S3::Bucket'
+    DeletionPolicy: Delete
+    Properties:
+      BucketName: !Sub 'databricks-dabs-demo-artifact-${AWS::AccountId}'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - BucketKeyEnabled: false
+            ServerSideEncryptionByDefault:
+              SSEAlgorithm: "AES256"
+
+  PipelineArtifactStoreBucketPolicy:
+    Type: 'AWS::S3::BucketPolicy'
+    Properties:
+      Bucket: !Ref PipelineArtifactStoreBucket
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: EnforceSSL
+            Effect: Deny
+            Principal: '*'
+            Action: 's3:*'
+            Resource: 
+              - !Sub '${PipelineArtifactStoreBucket.Arn}'
+              - !Sub '${PipelineArtifactStoreBucket.Arn}/*'
+            Condition:
+              Bool:
+                'aws:SecureTransport': false
+
+  PipelineSourceEventRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          -
+            Effect: Allow
+            Principal:
+              Service:
+                - events.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      Policies:
+        -
+          PolicyName: databricks-dabs-pipeline-execution
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              -
+                Effect: Allow
+                Action: codepipeline:StartPipelineExecution
+                Resource:
+                  - !Sub 'arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${AWSCodePipeline}'
+
+  PipelineSourceEventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      EventPattern:
+        source:
+          - aws.codecommit
+        detail-type:
+          - 'CodeCommit Repository State Change'
+        resources:
+          - !Sub 'arn:aws:codecommit:${AWS::Region}:${AWS::AccountId}:${RepositoryName}'
+        detail:
+          event:
+            - referenceCreated
+            - referenceUpdated
+          referenceType:
+            - branch
+          referenceName:
+            - !Ref RepoBranch
+      Targets:
+        - Arn: !Sub 'arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${AWSCodePipeline}'
+          RoleArn: !GetAtt PipelineSourceEventRole.Arn  
+          Id: databricks-dabs-pipeline
+
+  AWSCodePipeline:
+    Type: 'AWS::CodePipeline::Pipeline'
+    Properties:
+      ArtifactStore:
+        Location: !Ref PipelineArtifactStoreBucket
+        Type: S3
+      RoleArn: !GetAtt CodePipelineServiceRole.Arn
+      Name: Databricks-Asset-Bundle-Automation-Sample
+      Stages:
+        - Name: Source
+          Actions:
+            - Name: CodeCommitUpdate
+              ActionTypeId:
+                Category: Source
+                Owner: AWS
+                Version: '1'
+                Provider: CodeCommit
+              Configuration:
+                RepositoryName: !Ref RepositoryName
+                BranchName: !Ref RepoBranch
+                PollForSourceChanges: false
+              OutputArtifacts:
+                - Name: SourceArtifacts
+              RunOrder: 1
+              
+        - Name: Staging
+          Actions:
+            - Name: BundleDeployinStaging
+              InputArtifacts:
+                - Name: SourceArtifacts
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: '1'
+              Configuration:
+                ProjectName: !Ref BundleDeployinStagingProject
+              RunOrder: 1
+        - Name: Production
+          Actions:
+            - Name: Approval
+              ActionTypeId:
+                Category: Approval
+                Owner: AWS
+                Version: '1'
+                Provider: Manual
+              Configuration:
+                CustomData: Please check the S3 Objects before triggering the deployment
+              RunOrder: 1
+            - Name: BundleDeployinProd
+              InputArtifacts:
+                - Name: SourceArtifacts
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: '1'
+              Configuration:
+                ProjectName: !Ref BundleDeployinProdProject
+              RunOrder: 2
+
+            # - Name: TriggerLambdaAutomation
+            #   ActionTypeId:
+            #     Category: Invoke
+            #     Owner: AWS
+            #     Provider: Lambda
+            #     Version: '1'
+            #   Configuration:
+            #     FunctionName: "ic-permissionsets-enabler"
+            #   RunOrder: 2
+
+  CodePipelineServiceRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: DatabricksDABsCodePipelineRole
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action:
+              - 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service:
+                - codepipeline.amazonaws.com
+        Version: 2012-10-17
+      Path: /
+      Policies:
+        - PolicyName: Pipeline-Service-Policy-Example
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'codecommit:CancelUploadArchive'
+                  - 'codecommit:GetBranch'
+                  - 'codecommit:GetCommit'
+                  - 'codecommit:GetUploadArchiveStatus'
+                  - 'codecommit:UploadArchive'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 'codedeploy:CreateDeployment'
+                  - 'codedeploy:GetApplicationRevision'
+                  - 'codedeploy:GetDeployment'
+                  - 'codedeploy:GetDeploymentConfig'
+                  - 'codedeploy:RegisterApplicationRevision'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 'codebuild:BatchGetBuilds'
+                  - 'codebuild:StartBuild'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 'iam:PassRole'
+                Resource: 
+                  - !GetAtt CodeBuildRole.Arn
+              - Effect: Allow
+                Action:
+                  - "s3:GetObject"
+                  - "s3:GetObjectVersion"
+                  - "s3:PutObject"
+                Resource:
+                  - !Sub '${PipelineArtifactStoreBucket.Arn}/*'
+
+  BundleDeployinStagingProject:
+    Type: 'AWS::CodeBuild::Project'
+    Properties:
+      Name: Staging
+      Description: Set up Databricks CLI and Execute Bundle Deploy in Dev
+      EncryptionKey: alias/aws/s3
+      ServiceRole: !GetAtt CodeBuildRole.Arn
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: 'aws/codebuild/standard:7.0'
+        EnvironmentVariables:
+          - Name: DEV_HOST
+            Type: PLAINTEXT
+            Value: !Ref DevWorkspaceURL
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: 
+          |
+          version: 0.2
+          env:
+            secrets-manager:
+              #'DB_DEMO' is the secret name; 'DB_DEV_TOKEN' is the key value.
+              DEV_TOKEN: DB_DEMO:DB_DEV_TOKEN
+          phases:
+            install:
+              runtime-versions:
+                python: 3.9
+            pre_build:
+              commands:
+                - echo Installing source dependencies...
+                - echo $DEV_HOST
+                - python -m pip install --upgrade pip nutter databricks-cli
+                - env | sort
+                - curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
+            build:
+              commands:
+                - echo Build started on `date`
+                - echo Building...
+                - echo $DEV_TOKEN | databricks configure --host $DEV_HOST --token
+                - databricks bundle deploy -t dev
+            post_build:
+              commands:
+                - echo Start Bundle deploy
+                - databricks bundle deploy -t qa
+                #- databricks bundle run -t qa ingestion_job
+                # Optional Nutter test
+                #- nutter run <>
+
+      SourceVersion: !Sub 'refs/heads/${RepoBranch}'
+      TimeoutInMinutes: 10
+
+  BundleDeployinProdProject:
+    Type: 'AWS::CodeBuild::Project'
+    Properties:
+      Name: Prod
+      Description: Set up Databricks CLI and Execute Bundle Deploy in Production
+      EncryptionKey: alias/aws/s3
+      ServiceRole: !GetAtt CodeBuildRole.Arn
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: 'aws/codebuild/standard:7.0'
+        EnvironmentVariables:
+          - Name: PROD_HOST
+            Type: PLAINTEXT
+            Value: !Ref ProdWorkspaceURL
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: 
+          |
+          version: 0.2
+          env:
+            secrets-manager:
+              #'DB_DEMO' is the secret name; 'DB_PROD_TOKEN' is the key value.
+              PROD_TOKEN: DB_DEMO:DB_PROD_TOKEN
+          phases:
+            install:
+              runtime-versions:
+                python: 3.9
+            pre_build:
+              commands:
+                - echo Installing source dependencies...
+                - echo $PROD_HOST
+                - python -m pip install --upgrade pip nutter databricks-cli
+                - env | sort
+                - curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
+
+            build:
+              commands:
+                - echo Build started on `date`
+                - echo Building...
+                - echo $PROD_TOKEN | databricks configure --host $PROD_HOST --token
+            post_build:
+              commands:
+                - echo Build completed on `date`
+
+      SourceVersion: !Sub 'refs/heads/${RepoBranch}'
+      TimeoutInMinutes: 10
+
+
+  CodeBuildRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: DABsDemoCodeBuildRole
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action:
+              - 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service:
+                - codebuild.amazonaws.com
+        Version: 2012-10-17
+      Path: /
+      Policies:
+        - PolicyName: CodeBuildAccess
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'logs:CreateLogGroup'
+                  - 'logs:CreateLogStream'
+                  - 'logs:PutLogEvents'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 's3:DeleteObjectTagging'
+                  - 's3:GetBucketPolicy'
+                  - 's3:GetObject'
+                  - 's3:GetObjectVersion'
+                  - 's3:ListBucket'
+                  - 's3:PutEncryptionConfiguration'
+                  - 's3:PutBucketEncryption'
+                  - 's3:PutBucketPolicy'
+                  - 's3:PutBucketPublicAccessBlock'
+                  - 's3:PutBucketVersioning'
+                  - 's3:PutObject'
+                  - 's3:PutObjectTagging'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 'secretsmanager:GetSecretValue'
+                Resource:
+                  - !Ref SecretManagerArn

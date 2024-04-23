@@ -77,7 +77,6 @@ stages:
         testResultsFiles: '**/test-*.xml' 
         failTaskOnFailedTests: true
 
-
 - stage: onRelease
   condition: |
     eq(variables['Build.SourceBranch'], 'refs/heads/releases')
