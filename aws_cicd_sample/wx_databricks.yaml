@@ -1,50 +1,74 @@
 bundle:
-  name: DABsDemoOnAWS
-
+  name: DABsCICDDemo
 include:
   - resources/*.yml
 
 variables:
+  dev_workspace_url:
+    description: Dev workspace URL
+    default: https://one-env-wenxin-test-workspace.cloud.databricks.com
+  prod_workspace_url:
+    description: Prod workspace URL
+    default: https://dbc-a49c6081-8a5a.cloud.databricks.com
   rootPath:
     description: The root path for the deployment
     default: ~/.bundle/${bundle.name}/${bundle.target}
-  dev_workspace:
-    description: Dev workspace URL
-    default: https://one-env-wenxin-test-workspace.cloud.databricks.com
+  email_notifications_target:
+    description: The email to receive the job notifications.
+    default: wenxin.liu+alarm@databricks.com
+  job_note_type:
+    description: The compute type for job cluster
+    default: m6gd.large
+  spark_version:
+    description: The Databricks cluster runtime version
+    default: 13.3.x-scala2.12
 
 
 targets:
   dev:
     mode: development
-    # default: true
     workspace:
-      host: ${var.dev_workspace} 
-      root_path: ${var.rootPath}
+      host: https://one-env-wenxin-test-workspace.cloud.databricks.com #${var.dev_workspace_url} #
+      root_path: ~/.bundle/${bundle.name}/${bundle.target} #${var.rootPath} 
   qa:
-    # We use 'mode: production' to indicate this is a production deployment.
-    # Doing so enables strict verification of the settings below.
     workspace:
-      host: https://one-env-wenxin-test-workspace.cloud.databricks.com
-      # We always use /Users/alfeu.duran@databricks.com for all resources to make sure we only have a single copy.
-      # If this path results in an error, please make sure you have a recent version of the CLI installed.
-      # /Repos/bundle-staging/databricks-asset-bundles
+      host: https://one-env-wenxin-test-workspace.cloud.databricks.com #${var.dev_workspace_url} #
       root_path: ~/.bundle/${bundle.name}/${bundle.target}
-    # run_as:
-    #   # This runs as alfeu.duran@databricks.com in production. We could also use a service principal here,
-    #   # see https://docs.databricks.com/dev-tools/bundles/permissions.html.
-    #   user_name: alfeu.duran@databricks.com
+
 
   prod:
     # We use 'mode: production' to indicate this is a production deployment.
     # Doing so enables strict verification of the settings below.
     workspace:
-      host: https://adb-8876629969026717.17.azuredatabricks.net
+      host: https://dbc-a49c6081-8a5a.cloud.databricks.com #${prod_workspace_url}
       # We always use /Users/alfeu.duran@databricks.com for all resources to make sure we only have a single copy.
       # If this path results in an error, please make sure you have a recent version of the CLI installed.
       # /Repos/bundle-staging/databricks-asset-bundles
-      root_path: /Users/alfeu.duran@databricks.com/.bundle/${bundle.name}/${bundle.target}
-    # run_as:
-    #   # This runs as alfeu.duran@databricks.com in production. We could also use a service principal here,
-    #   # see https://docs.databricks.com/dev-tools/bundles/permissions.html.
-    #   user_name: alfeu.duran@databricks.com
- 
+      root_path: ~/.bundle/${bundle.name}/${bundle.target}
+
+resources:
+  jobs:
+    ingestion_job:
+      name: ingestion_job
+
+      schedule:
+        # Run every day at 8:37 AM
+        quartz_cron_expression: '44 37 8 * * ?'
+        timezone_id: Europe/Amsterdam
+
+      email_notifications:
+        on_failure:
+          - ${var.email_notifications_target}
+      tasks:
+        - task_key: notebook_task
+          job_cluster_key: job_cluster
+          notebook_task:
+            notebook_path: ../src/ingestion_test.ipynb
+      job_clusters:
+        - job_cluster_key: job_cluster
+          new_cluster:
+            spark_version: ${var.spark_version}
+            node_type_id: ${var.job_note_type} #m6gd.large; Standard_D3_v2
+            autoscale:
+                min_workers: 1
+                max_workers: 1
