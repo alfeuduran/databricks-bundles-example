@@ -17,6 +17,10 @@ Parameters:
     Description: The URL of Databricks Dev workspace
     Type: String
     Default: https://<dev_workspace_id>.cloud.databricks.com
+  QAWorkspaceURL:
+    Description: The URL of Databricks QA workspace
+    Type: String
+    Default: https://<dev_workspace_id>.cloud.databricks.com
   ProdWorkspaceURL:
     Description: The URL of Databricks Prod workspace
     Type: String
@@ -248,6 +252,9 @@ Resources:
           - Name: DEV_HOST
             Type: PLAINTEXT
             Value: !Ref DevWorkspaceURL
+          - Name: QA_HOST
+            Type: PLAINTEXT
+            Value: !Ref QAWorkspaceURL
       Source:
         Type: CODEPIPELINE
         BuildSpec: 
@@ -257,6 +264,7 @@ Resources:
             secrets-manager:
               #'DB_DEMO' is the secret name; 'DB_DEV_TOKEN' is the key value.
               DEV_TOKEN: DB_DEMO:DB_DEV_TOKEN
+              QA_TOKEN: DB_DEMO:DB_QA_TOKEN
           phases:
             install:
               runtime-versions:
@@ -264,21 +272,30 @@ Resources:
             pre_build:
               commands:
                 - echo Installing source dependencies...
-                - echo $DEV_HOST
-                - python -m pip install --upgrade pip nutter databricks-cli
+                - python -m pip install --upgrade pip nutter
                 - env | sort
                 - curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
+                - echo Start Building and Deploy into Dev Env...
+                - databricks -v
+
             build:
               commands:
                 - echo Build started on `date`
-                - echo Building...
                 - echo $DEV_TOKEN | databricks configure --host $DEV_HOST --token
-                - databricks bundle deploy -t dev
+                - echo Update target workspace url
+                - 'sed -i "/^ *host: DEV$/s|host: DEV|host: $DEV_HOST|" databricks.yml'
+                - cat databricks.yml
+                - databricks bundle validate -t development
+                - databricks bundle deploy -t development
+                - sleep 10
+                - echo Deploy and test in QA Env
+                - echo $QA_TOKEN | databricks configure --host $QA_HOST --token
+                - 'sed -i "/^ *host: QA$/s|host: QA|host: $QA_HOST|" databricks.yml'
+                - databricks bundle deploy -t qa
+                - databricks bundle run -t qa ingestion_job
             post_build:
               commands:
-                - echo Start Bundle deploy
-                - databricks bundle deploy -t qa
-                #- databricks bundle run -t qa ingestion_job
+                - echo Nutter test
                 # Optional Nutter test
                 #- nutter run <>
 
@@ -319,15 +336,17 @@ Resources:
               commands:
                 - echo Installing source dependencies...
                 - echo $PROD_HOST
-                - python -m pip install --upgrade pip nutter databricks-cli
+                - python -m pip install --upgrade pip nutter
                 - env | sort
                 - curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
-
+                - 'echo $PROD_TOKEN | databricks configure --host $PROD_HOST --token'
+                - sed -i "/^ *host: PROD$/s|host: PROD|host: $PROD_HOST|" databricks.yml
             build:
               commands:
                 - echo Build started on `date`
                 - echo Building...
-                - echo $PROD_TOKEN | databricks configure --host $PROD_HOST --token
+                - databricks bundle validate -t prod
+                - databricks bundle deploy -t prod
             post_build:
               commands:
                 - echo Build completed on `date`

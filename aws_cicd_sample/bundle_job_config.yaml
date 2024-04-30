@@ -2,15 +2,13 @@ resources:
   jobs:
     ingestion_job:
       name: ingestion_job
-
       schedule:
         # Run every day at 8:37 AM
         quartz_cron_expression: '44 37 8 * * ?'
         timezone_id: Europe/Amsterdam
-
       email_notifications:
         on_failure:
-          - wenxin.liu+alarm@databricks.com
+          - ${var.email_notifications_target}
       tasks:
         - task_key: notebook_task
           job_cluster_key: job_cluster
@@ -19,9 +17,13 @@ resources:
       job_clusters:
         - job_cluster_key: job_cluster
           new_cluster:
-            spark_version: 13.3.x-scala2.12
-            #node_type_id: Standard_D3_v2
-            node_type_id: m6gd.large
+            spark_version: ${var.spark_version}
+            node_type_id: ${var.job_note_type}
             autoscale:
                 min_workers: 1
                 max_workers: 1
+            #Required for AWS Nitro Instance Types
+            aws_attributes:
+              ebs_volume_count: 1
+              ebs_volume_size: 100
+              ebs_volume_type: GENERAL_PURPOSE_SSD
