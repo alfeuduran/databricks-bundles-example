@@ -87,7 +87,13 @@ The prerequisites for proceeding with the creation of the CI/CD process within A
 6. Once we push to the releases branch, a new pipeline is started
    ![Variable configuration on azure-pipelines.yml](images/6-pipeline.png)
 
-Once the pipeline is finished, we will have the artifacts of this project in the workspace that was configured within the databricks.yml
+
+## Artifacts
+Upon completion, the pipeline artifacts are available in the configured Databricks workspace (databricks.yml).
 ![pipeline run](images/7-pipelineRun.png)
+
+Refer to the Databricks asset bundles documentation for more detailed information on project configurations and CI/CD integrations.
+[Databricks asset bundles documentation](https://docs.databricks.com/en/dev-tools/bundles/index.html)
+
 
 
