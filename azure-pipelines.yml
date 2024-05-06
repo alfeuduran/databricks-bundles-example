@@ -102,6 +102,7 @@ stages:
           python -m pip install --upgrade pip nutter
           # this is because of the old dependency inside Nutter
           python -m pip install -r requirements-dev.txt
+          python -m pip install wheel
       displayName: 'Install dependencies' 
 
     - script: |
