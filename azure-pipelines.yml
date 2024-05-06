@@ -99,6 +99,12 @@ stages:
       displayName: 'Checkout & Build.Reason: $(Build.Reason) & Build.SourceBranchName: $(Build.SourceBranchName)'
 
     - script: |
+          python -m pip install --upgrade pip nutter
+          # this is because of the old dependency inside Nutter
+          python -m pip install -r requirements-dev.txt
+      displayName: 'Install dependencies' 
+
+    - script: |
         echo Instalando o CLI do Databricks...
         curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
       displayName: 'Instalar CLI do Databricks'
