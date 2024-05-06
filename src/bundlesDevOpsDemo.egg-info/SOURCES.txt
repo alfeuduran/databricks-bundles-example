@@ -1,0 +1,10 @@
+README.md
+setup.py
+src/bundlesDevOpsDemo/__init__.py
+src/bundlesDevOpsDemo/main.py
+src/bundlesDevOpsDemo.egg-info/PKG-INFO
+src/bundlesDevOpsDemo.egg-info/SOURCES.txt
+src/bundlesDevOpsDemo.egg-info/dependency_links.txt
+src/bundlesDevOpsDemo.egg-info/entry_points.txt
+src/bundlesDevOpsDemo.egg-info/requires.txt
+src/bundlesDevOpsDemo.egg-info/top_level.txt

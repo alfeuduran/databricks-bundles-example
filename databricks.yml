@@ -1,0 +1,43 @@
+# This is a Databricks asset bundle definition for bundlesDevOpsDemo.
+# See https://docs.databricks.com/dev-tools/bundles/index.html for documentation.
+bundle:
+  name: bundlesDevOpsDemo
+
+include:
+  - resources/*.yml
+
+targets:
+  # The 'dev' target, for development purposes. This target is the default.
+  dev:
+    # We use 'mode: development' to indicate this is a personal development copy:
+    # - Deployed resources get prefixed with '[dev my_user_name]'
+    # - Any job schedules and triggers are paused by default
+    # - The 'development' mode is used for Delta Live Tables pipelines
+    mode: development
+    default: true
+    workspace:
+      host: https://adb-3457621802558823.3.azuredatabricks.net
+      root_path: /Workspace/Users/alfeu.duran@databricks.com/Projects/${bundle.name}/${bundle.target}
+      
+
+  ## Optionally, there could be a 'staging' target here.
+  ## (See Databricks docs on CI/CD at https://docs.databricks.com/dev-tools/bundles/ci-cd.html.)
+  #
+  # staging:
+  #   workspace:
+  #     host: https://adb-3457621802558823.3.azuredatabricks.net
+
+  # The 'prod' target, used for production deployment.
+  prod:
+    # We use 'mode: production' to indicate this is a production deployment.
+    # Doing so enables strict verification of the settings below.
+    mode: production
+    workspace:
+      host: https://adb-3457621802558823.3.azuredatabricks.net
+      # We always use /Users/alfeu.duran@databricks.com for all resources to make sure we only have a single copy.
+      # If this path results in an error, please make sure you have a recent version of the CLI installed.
+      root_path: /Users/alfeu.duran@databricks.com/.bundle/${bundle.name}/${bundle.target}
+    run_as:
+      # This runs as alfeu.duran@databricks.com in production. We could also use a service principal here,
+      # see https://docs.databricks.com/dev-tools/bundles/permissions.html.
+      user_name: alfeu.duran@databricks.com

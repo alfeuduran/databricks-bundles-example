@@ -1,0 +1,129 @@
+variables:
+  - group: 'bundleVariables'
+  - name: 'branchName'
+    ${{ if startsWith(variables['Build.SourceBranch'], 'refs/heads/') }}:
+      value: $[ replace(variables['Build.SourceBranch'], 'refs/heads/', '') ] 
+    ${{ if startsWith(variables['Build.SourceBranch'], 'refs/pull/') }}:
+      value: $[ replace(variables['System.PullRequest.SourceBranch'], 'refs/heads/', '') ]
+trigger:
+  batch: true
+  branches:
+    include:
+    - '*'
+  paths:
+    exclude:
+      - README.md
+      - LICENSE
+      - .github
+stages:
+
+- stage: onRelease
+  variables:
+    - group: releaseVariables
+  condition: |
+    eq(variables['Build.SourceBranch'], 'refs/heads/releases')
+  jobs:
+  - job: onReleaseJob
+    pool:
+      vmImage: 'ubuntu-20.04'
+
+    steps:
+    - script: env | sort
+      displayName: 'Environment / Context'
+    
+    - task: UsePythonVersion@0
+      displayName: 'Use Python 3.8'
+      inputs:
+        versionSpec: 3.8
+
+    - checkout: self
+      displayName: 'Checkout & Build.Reason: $(Build.Reason) & Build.SourceBranchName: $(Build.SourceBranchName)'
+    
+    - script: |
+        echo Instalando o CLI do Databricks...
+        curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
+      displayName: 'Instalar CLI do Databricks'
+    
+    - script: |
+        echo Configurando o CLI do Databricks...
+        databricks configure --token
+        echo -e "[DATABRICKS_HOST]\n[DATABRICKS_TOKEN]" | databricks configure --token
+      env:
+        DATABRICKS_HOST: $(DATABRICKS_HOST)
+        DATABRICKS_TOKEN: $(DATABRICKS_TOKEN)
+      displayName: 'Configurar CLI do Databricks'
+    - script: |
+        databricks bundle validate -t $(env)
+      displayName: Validate bundle for $(env) enviroment
+
+    - script: |
+        echo Deploy do bundle via CLI do Databricks...
+        databricks bundle deploy -t $(env)
+      displayName: Deploy job on $(env) enviroment
+        photo
+
+    - script: |
+        echo Running job
+        databricks bundle run bundlesDevOpsDemo_job -t $(env)
+      displayName: Run simpleworkflow on $(env) enviroment
+
+    - script: |
+        echo Running DLT pipeline
+        databricks bundle run bundlesDevOpsDemo_pipeline -t $(env)
+      displayName: Run simpleworkflow on $(env) enviroment
+    
+    
+- stage: toProduction
+  variables:
+    - group: PrdVariables
+  condition: |
+    eq(variables['Build.SourceBranch'], 'refs/heads/main')
+  dependsOn: onRelease
+  jobs:
+  - job: onReleaseJob
+    pool:
+      vmImage: 'ubuntu-20.04'
+
+    steps:
+    - script: env | sort
+      displayName: 'Environment / Context'
+
+    - task: UsePythonVersion@0
+      displayName: 'Use Python 3.8'
+      inputs:
+        versionSpec: 3.8
+
+    - checkout: self
+      persistCredentials: true
+      clean: true
+      displayName: 'Checkout & Build.Reason: $(Build.Reason) & Build.SourceBranchName: $(Build.SourceBranchName)'
+
+    - script: |
+        echo Instalando o CLI do Databricks...
+        curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
+      displayName: 'Instalar CLI do Databricks'
+    
+    - script: |
+        echo Configurando o CLI do Databricks...
+        databricks configure --token
+        echo -e "[DATABRICKS_HOST]\n[DATABRICKS_TOKEN]" | databricks configure --token
+      env:
+        DATABRICKS_HOST: $(DATABRICKS_HOST)
+        DATABRICKS_TOKEN: $(DATABRICKS_TOKEN)
+      displayName: 'Configurar CLI do Databricks'
+
+    - script: |
+        databricks bundle validate -t $(env)
+      displayName: Validate bundle for $(env) enviroment
+
+    - script: |
+        echo Deploy do bundle via CLI do Databricks...
+        databricks bundle deploy -t $(env) 
+      displayName: Deploy job on $(env) enviroment
+
+    
+
+      
+    
+        
+    
