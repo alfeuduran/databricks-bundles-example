@@ -16,69 +16,10 @@ trigger:
       - LICENSE
       - .github
 stages:
-- stage: onPush
-  condition: |
-    and(
-      ne(variables['Build.SourceBranch'], 'refs/heads/main'),
-      ne(variables['Build.SourceBranch'], 'refs/heads/releases'))
-  jobs:
-  - job: onPushJob
-    pool:
-      vmImage: 'ubuntu-20.04'
-
-    steps:
-
-    - script: env | sort
-      displayName: 'Environment / Context'
-
-    - task: UsePythonVersion@0
-      displayName: 'Use Python 3.8'
-      inputs:
-        versionSpec: 3.8
-
-    - checkout: self
-      displayName: 'Checkout & Build.Reason: $(Build.Reason) & Build.SourceBranchName: $(Build.SourceBranchName)'
-    
-    - script: |
-        python -m pip install --upgrade pip nutter
-        # this is because of the old dependency inside Nutter
-        python -m pip install --upgrade databricks-cli
-      displayName: 'Install dependencies' 
-      
-    - script: |
-        echo Instalando o CLI do Databricks...
-        curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
-      displayName: 'Instalar CLI do Databricks'
-    
-    - script: |
-        echo Configurando o CLI do Databricks...
-        databricks configure --token
-        echo -e "[DATABRICKS_HOST]\n[DATABRICKS_TOKEN]" | databricks configure --token
-      env:
-        DATABRICKS_HOST: $(DATABRICKS_HOST)
-        DATABRICKS_TOKEN: $(DATABRICKS_TOKEN)
-      displayName: 'Configurar CLI do Databricks'
-    
-    - script: |
-        echo Deploy do bundle via CLI do Databricks...
-        databricks bundle deploy -t dev
-    
-    - script: |
-        nutter run  /Workspace/Users/alfeu.duran@databricks.com/.bundle/bundletest/dev/files/unit-tests/test_medium_table  --cluster_id 0312-230129-l09vd11k --junit_report --timeout 240
-      env:
-        DATABRICKS_HOST: $(DATABRICKS_HOST)
-        DATABRICKS_TOKEN: $(DATABRICKS_TOKEN)
-      displayName: 'Execute Nutter tests'
-    
-    - task: PublishTestResults@2
-      condition: succeededOrFailed()
-      inputs:
-        testResultsFormat: 'JUnit'
-        testResultsFiles: '**/test-*.xml' 
-        failTaskOnFailedTests: true
-
 
 - stage: onRelease
+  variables:
+    - group: releaseVariables
   condition: |
     eq(variables['Build.SourceBranch'], 'refs/heads/releases')
   jobs:
@@ -89,23 +30,15 @@ stages:
     steps:
     - script: env | sort
       displayName: 'Environment / Context'
-
+    
     - task: UsePythonVersion@0
       displayName: 'Use Python 3.8'
       inputs:
         versionSpec: 3.8
 
     - checkout: self
-      persistCredentials: true
-      clean: true
       displayName: 'Checkout & Build.Reason: $(Build.Reason) & Build.SourceBranchName: $(Build.SourceBranchName)'
-
-    - script: |
-        python -m pip install --upgrade pip nutter
-        # this is because of the old dependency inside Nutter
-        python -m pip install --upgrade databricks-cli
-      displayName: 'Install dependencies' 
-
+    
     - script: |
         echo Instalando o CLI do Databricks...
         curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
@@ -119,32 +52,30 @@ stages:
         DATABRICKS_HOST: $(DATABRICKS_HOST)
         DATABRICKS_TOKEN: $(DATABRICKS_TOKEN)
       displayName: 'Configurar CLI do Databricks'
-      
+    - script: |
+        databricks bundle validate -t $(env)
+      displayName: Validate bundle for $(env) enviroment
+
     - script: |
         echo Deploy do bundle via CLI do Databricks...
-        databricks bundle deploy -t qa 
-      displayName: Deploy job on qa enviroment
-        
-    - script: |
-        echo run bundle via CLI do Databricks...
-        databricks bundle run -t qa ingestion_job
-      displayName: Run job on qa enviroment
-    
-    - script: |
-        nutter run  /Workspace/Users/alfeu.duran@databricks.com/.bundle/bundletest/dev/files/unit-tests/test_medium_table  --cluster_id 0312-230129-l09vd11k --junit_report --timeout 240
-      env:
-        DATABRICKS_HOST: $(DATABRICKS_HOST)
-        DATABRICKS_TOKEN: $(DATABRICKS_TOKEN)
-      displayName: 'Execute Nutter tests'
-    
-    - task: PublishTestResults@2
-      condition: succeededOrFailed()
-      inputs:
-        testResultsFormat: 'JUnit'
-        testResultsFiles: '**/test-*.xml' 
-        failTaskOnFailedTests: trueq
+        databricks bundle deploy -t $(env)
+      displayName: Deploy job on $(env) enviroment
+        photo
 
+    - script: |
+        echo Running job
+        databricks bundle run bundlesDevOpsDemo_job -t $(env)
+      displayName: Run simpleworkflow on $(env) enviroment
+
+    - script: |
+        echo Running DLT pipeline
+        databricks bundle run bundlesDevOpsDemo_pipeline -t $(env)
+      displayName: Run simpleworkflow on $(env) enviroment
+    
+    
 - stage: toProduction
+  variables:
+    - group: PrdVariables
   condition: |
     eq(variables['Build.SourceBranch'], 'refs/heads/main')
   dependsOn: onRelease
@@ -168,12 +99,6 @@ stages:
       displayName: 'Checkout & Build.Reason: $(Build.Reason) & Build.SourceBranchName: $(Build.SourceBranchName)'
 
     - script: |
-        python -m pip install --upgrade pip nutter
-        # this is because of the old dependency inside Nutter
-        python -m pip install --upgrade databricks-cli
-      displayName: 'Install dependencies' 
-
-    - script: |
         echo Instalando o CLI do Databricks...
         curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
       displayName: 'Instalar CLI do Databricks'
@@ -186,10 +111,19 @@ stages:
         DATABRICKS_HOST: $(DATABRICKS_HOST)
         DATABRICKS_TOKEN: $(DATABRICKS_TOKEN)
       displayName: 'Configurar CLI do Databricks'
-      
+
+    - script: |
+        databricks bundle validate -t $(env)
+      displayName: Validate bundle for $(env) enviroment
+
     - script: |
         echo Deploy do bundle via CLI do Databricks...
-        databricks bundle deploy -t prod 
-      displayName: Deploy job on qa enviroment
+        databricks bundle deploy -t $(env) 
+      displayName: Deploy job on $(env) enviroment
+
+    
+
+      
+    
         
     
