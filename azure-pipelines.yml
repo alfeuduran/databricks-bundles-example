@@ -44,6 +44,7 @@ stages:
             # this is because of the old dependency inside Nutter
             python -m pip install wheel
             python -m pip install setuptools
+            python -m pip install pytest
       displayName: 'Install dependencies' 
       
     - script: |
@@ -79,7 +80,17 @@ stages:
         databricks bundle run bundlesDevOpsDemo_pipeline -t $(env)
       displayName: Run simpleworkflow on $(env) enviroment
     
-    
+    - script: |
+        pytest --junitxml=results.xml
+      displayName: 'Run tests with pytest'
+
+    - task: PublishTestResults@2
+      inputs:
+        testResultsFormat: 'JUnit'
+        testResultsFiles: '**/results.xml'
+        failTaskOnFailedTests: true
+        testRunTitle: 'Pytest Results'
+      
 - stage: toProduction
   variables:
     - group: PrdVariables
