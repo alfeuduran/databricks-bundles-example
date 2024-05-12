@@ -45,6 +45,7 @@ stages:
             python -m pip install wheel
             python -m pip install setuptools
             python -m pip install pytest
+            python -m pip install pyspark
       displayName: 'Install dependencies' 
       
     - script: |
