@@ -8,3 +8,5 @@ src/bundlesDevOpsDemo.egg-info/dependency_links.txt
 src/bundlesDevOpsDemo.egg-info/entry_points.txt
 src/bundlesDevOpsDemo.egg-info/requires.txt
 src/bundlesDevOpsDemo.egg-info/top_level.txt
+tests/test_myfunctions.py
+tests/test_nyctaxi.py

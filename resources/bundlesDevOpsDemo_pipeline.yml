@@ -3,7 +3,7 @@ resources:
   pipelines:
     bundlesDevOpsDemo_pipeline:
       name: bundlesDevOpsDemo_pipeline
-      target: bundlesDevOpsDemo_${bundle.environment}
+      target: bundesdevopsdemo_${bundle.environment}
       libraries:
         - notebook:
             path: ../src/dlt_pipeline.ipynb
