@@ -1,7 +1,7 @@
 # This is a Databricks asset bundle definition for bundlesDevOpsDemo.
 # See https://docs.databricks.com/dev-tools/bundles/index.html for documentation.
 bundle:
-  name: bundlesDevOpsDemo
+  name: bundesdevopsdemo
 
 include:
   - resources/*.yml

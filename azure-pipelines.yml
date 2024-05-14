@@ -82,8 +82,11 @@ stages:
       displayName: Run simpleworkflow on $(env) enviroment
     
     - script: |
-        pytest --junitxml=results.xml
-      displayName: 'Run tests with pytest'
+        nutter run /Workspace/Users/alfeu.duran@databricks.com/Projects/bundesdevopsdemo/dev/files/tests/test_nyctaxi --cluster_id 0312-230129-l09vd11k --junit_report --timeout 240
+      env:
+        DATABRICKS_HOST: $(DATABRICKS_HOST)
+        DATABRICKS_TOKEN: $(DATABRICKS_TOKEN)
+      displayName: 'Execute Nutter tests'
 
     - task: PublishTestResults@2
       inputs:
