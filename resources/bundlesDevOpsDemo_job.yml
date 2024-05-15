@@ -1,8 +1,9 @@
 # The main job for bundlesDevOpsDemo.
 resources:
   jobs:
-    bundesdevopsdemo_job:
-      name: bundesdevopsdemo_job
+    bundlesDevOpsDemo_job:
+      name: bundlesDevOpsDemo_job
+
 
       schedule:
         # Run every day at 8:37 AM
