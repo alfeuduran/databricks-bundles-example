@@ -1,3 +1,6 @@
 .venv
 .databricks
 .vscode
+./src/bundlesDevOpsDemo.egg-info
+./src/bundlesDevOpsDemo/__pycache__
+/Users/alfeu.duran/Documents/Estudo/databricks-bundles-example/src/bundlesDevOpsDemo/__pycache__
