@@ -69,7 +69,6 @@ stages:
         echo Deploy do bundle via CLI do Databricks...
         databricks bundle deploy -t $(env)
       displayName: Deploy job on $(env) enviroment
-        photo
 
     - script: |
         echo Running job

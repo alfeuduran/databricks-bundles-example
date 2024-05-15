@@ -4,6 +4,7 @@ resources:
     bundesdevopsdemo_job:
       name: bundesdevopsdemo_job
 
+
       schedule:
         # Run every day at 8:37 AM
         quartz_cron_expression: '44 37 8 * * ?'
