@@ -33,7 +33,7 @@ targets:
     # Doing so enables strict verification of the settings below.
     mode: production
     workspace:
-      host: https://adb-3457621802558823.3.azuredatabricks.net
+      host: https://adb-199239627983066.6.azuredatabricks.net/
       # We always use /Users/alfeu.duran@databricks.com for all resources to make sure we only have a single copy.
       # If this path results in an error, please make sure you have a recent version of the CLI installed.
       root_path: /Users/alfeu.duran@databricks.com/.bundle/${bundle.name}/${bundle.target}
