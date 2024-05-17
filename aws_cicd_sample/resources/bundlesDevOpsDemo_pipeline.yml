@@ -1,0 +1,16 @@
+# The main pipeline for bundlesDevOpsDemo
+resources:
+  pipelines:
+    bundlesDevOpsDemo_pipeline:
+      name: bundlesDevOpsDemo_pipeline
+      target: bundlesDevOpsDemo_${bundle.environment}
+      libraries:
+        - notebook:
+            path: ../src/dlt_pipeline.ipynb
+      configuration:
+        bundle.sourcePath: /Workspace/${workspace.file_path}/src
+      clusters:
+        - label: default
+          num_workers: 1
+          node_type_id: ${var.dlt_node_type}
+          #serverless: false

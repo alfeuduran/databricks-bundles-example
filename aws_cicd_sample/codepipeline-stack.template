@@ -25,8 +25,10 @@ Parameters:
     Description: The URL of Databricks Prod workspace
     Type: String
     Default: https://<prod_workspace_id>.cloud.databricks.com
-
-    
+  SecretName:
+    Description: The name of the secret. The default value used in build script is 'DB_DEMO'
+    Type: String
+    Default: DB_DEMO
 
 Resources:
   PipelineArtifactStoreBucket:
@@ -268,7 +270,7 @@ Resources:
           phases:
             install:
               runtime-versions:
-                python: 3.9
+                python: 3.10
             pre_build:
               commands:
                 - echo Installing source dependencies...
@@ -286,13 +288,15 @@ Resources:
                 - 'sed -i "/^ *host: DEV$/s|host: DEV|host: $DEV_HOST|" databricks.yml'
                 - cat databricks.yml
                 - databricks bundle validate -t development
-                - databricks bundle deploy -t development
+                - databricks bundle deploy -t development --force-lock 
                 - sleep 10
                 - echo Deploy and test in QA Env
                 - echo $QA_TOKEN | databricks configure --host $QA_HOST --token
                 - 'sed -i "/^ *host: QA$/s|host: QA|host: $QA_HOST|" databricks.yml'
-                - databricks bundle deploy -t qa
-                - databricks bundle run -t qa ingestion_job
+                - databricks bundle deploy -t qa --force-lock 
+                - echo Test job and pipeline in QA environment
+                #- databricks bundle run -t qa bundlesDevOpsDemo_job
+                - databricks bundle run -t qa bundlesDevOpsDemo_pipeline
             post_build:
               commands:
                 - echo Nutter test
@@ -331,7 +335,7 @@ Resources:
           phases:
             install:
               runtime-versions:
-                python: 3.9
+                python: 3.10
             pre_build:
               commands:
                 - echo Installing source dependencies...
@@ -339,14 +343,17 @@ Resources:
                 - python -m pip install --upgrade pip nutter
                 - env | sort
                 - curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
-                - 'echo $PROD_TOKEN | databricks configure --host $PROD_HOST --token'
-                - sed -i "/^ *host: PROD$/s|host: PROD|host: $PROD_HOST|" databricks.yml
+                - databricks -v
             build:
               commands:
+                - echo $PROD_TOKEN | databricks configure --host $PROD_HOST --token
+                - sed -i "/^ *host: PROD$/s|host: PROD|host: $PROD_HOST|" databricks.yml
+                - cat databricks.yml
                 - echo Build started on `date`
                 - echo Building...
                 - databricks bundle validate -t prod
-                - databricks bundle deploy -t prod
+                - databricks bundle deploy -t prod --force-lock 
+                - databricks bundle run -t prod bundlesDevOpsDemo_job
             post_build:
               commands:
                 - echo Build completed on `date`

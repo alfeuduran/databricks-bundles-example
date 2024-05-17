@@ -9,16 +9,19 @@ variables:
   email_notifications_target:
     description: The email to receive the job notifications.
     default: wenxin.liu+alarm@databricks.com
-  job_note_type:
+  job_node_type:
     description: The compute type for job cluster
     default: r6i.large
+  dlt_node_type:
+    description: The compute type for dlt cluster
+    default: m5d.large
   spark_version:
     description: The Databricks cluster runtime version
     default: 13.3.x-scala2.12
 
 targets:
   development:
-    #mode: development
+    mode: development
     workspace:
       # The host url will be updated by the cicd runner using Linux 'sed' command.
       host: DEV
@@ -34,4 +37,3 @@ targets:
       # The host url will be updated by the cicd runner using Linux 'sed' command.
       host: PROD
       root_path: ~/.bundle/${bundle.name}/${bundle.target}
-

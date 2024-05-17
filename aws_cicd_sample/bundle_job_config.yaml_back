@@ -18,7 +18,7 @@ resources:
         - job_cluster_key: job_cluster
           new_cluster:
             spark_version: ${var.spark_version}
-            node_type_id: ${var.job_note_type}
+            node_type_id: ${var.job_node_type}
             autoscale:
                 min_workers: 1
                 max_workers: 1

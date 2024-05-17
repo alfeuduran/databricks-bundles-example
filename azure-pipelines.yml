@@ -135,9 +135,3 @@ stages:
         databricks bundle deploy -t $(env) 
       displayName: Deploy job on $(env) enviroment
 
-    
-
-      
-    
-        
-    
