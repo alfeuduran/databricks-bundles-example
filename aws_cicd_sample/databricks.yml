@@ -1,9 +1,13 @@
 bundle:
   name: DABsCICDDemo
 
+# User can store YAML definition files for various components in different folders to better orchestrate the code.
 include:
-  #User can store YAML definition files for various components in different folders to better orchestrate the code.
   - resources/*.yml
+
+# 'run_as' must be set for all jobs when using 'mode: production'
+run_as: 
+  user_name: wenxin.liu@databricks.com
 
 variables:
   email_notifications_target:
