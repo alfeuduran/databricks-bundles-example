@@ -36,7 +36,7 @@ stages:
       inputs:
         versionSpec: 3.8
     
-    - task: UseAzureCLI@1
+    - task: AzureCLI@2
       inputs:
         azureSubscription: alfeutestsp
         scriptType: 'bash'
