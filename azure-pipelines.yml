@@ -35,6 +35,16 @@ stages:
       displayName: 'Use Python 3.8'
       inputs:
         versionSpec: 3.8
+    
+    - task: AzureCLI@2
+      displayName: az storage blob upload-batch 
+      inputs:
+        azureSubscription: alfeutestsp
+        scriptType: bash 
+        scriptLocation: inlineScript 
+        inlineScript: | 
+          az --version
+
 
     - checkout: self
       displayName: 'Checkout & Build.Reason: $(Build.Reason) & Build.SourceBranchName: $(Build.SourceBranchName)'
