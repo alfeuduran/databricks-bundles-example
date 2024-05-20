@@ -21,7 +21,7 @@ stages:
   variables:
     - group: releaseVariables
   condition: |
-    eq(variables['Build.SourceBranch'], 'refs/heads/releases')
+    eq(variables['Build.SourceBranch'], 'refs/heads/dev')
   jobs:
   - job: onReleaseJob
     pool:
