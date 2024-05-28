@@ -56,11 +56,6 @@ stages:
 
     - script: |
             python -m pip install --upgrade pip nutter
-            # this is because of the old dependency inside Nutter
-            python -m pip install wheel
-            python -m pip install setuptools
-            python -m pip install pytest
-            python -m pip install pyspark
       displayName: 'Install dependencies' 
       
     - script: |
