@@ -14,7 +14,7 @@ stages:
   variables:
     - group: releaseVariables
   condition: |
-    eq(variables['Build.SourceBranch'], 'refs/heads/main') # mudei para testes
+    eq(variables['Build.SourceBranch'], 'refs/heads/main')
   jobs:
   - job: onReleaseJob
     pool:

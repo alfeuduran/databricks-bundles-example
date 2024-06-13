@@ -7,7 +7,7 @@ targets:
   dev:
     default: true
     workspace:
-      host: https://adb-8876629969026717.17.azuredatabricks.net
+      host: https://adb-8876629969026717.17.azuredatabricks.net/
       root_path: /Workspace/Users/alfeu.duran@databricks.com/Projects/${bundle.name}/${bundle.target}
   prod:
     mode: production
