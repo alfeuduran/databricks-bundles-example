@@ -48,7 +48,12 @@ stages:
       displayName: 'Checkout & Build.Reason: $(Build.Reason) & Build.SourceBranchName: $(Build.SourceBranchName)'
 
     - script: |
+            # this is because of the old dependency inside Nutter
             python -m pip install --upgrade pip nutter
+            python -m pip install wheel
+            python -m pip install setuptools
+            python -m pip install pytest
+            python -m pip install pyspark
       displayName: 'Install dependencies' 
       
     - script: |
