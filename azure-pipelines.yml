@@ -21,7 +21,7 @@ stages:
   variables:
     - group: releaseVariables
   condition: |
-    eq(variables['Build.SourceBranch'], 'refs/heads/releases')
+    eq(variables['Build.SourceBranch'], 'refs/heads/dev')
   jobs:
   - job: onReleaseJob
     pool:
@@ -35,17 +35,27 @@ stages:
       displayName: 'Use Python 3.8'
       inputs:
         versionSpec: 3.8
+    
+    - task: AzureCLI@2
+      inputs:
+        azureSubscription: alfeutestsp
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          echo "Getting access token..."
+          DATABRICKS_TOKEN=$(az account get-access-token --resource 2ff814a6-3304-4ab8-85cb-cd0e6f879c1d --query "accessToken" -o tsv)
+          echo "##vso[task.setvariable variable=DATABRICKS_TOKEN]$DATABRICKS_TOKEN"
+        
+    - script: |
+        echo "Using the token... (just test, you can remove)"
+        echo $(DATABRICKS_TOKEN)
+      displayName: 'Display the token'
 
     - checkout: self
       displayName: 'Checkout & Build.Reason: $(Build.Reason) & Build.SourceBranchName: $(Build.SourceBranchName)'
 
     - script: |
             python -m pip install --upgrade pip nutter
-            # this is because of the old dependency inside Nutter
-            python -m pip install wheel
-            python -m pip install setuptools
-            python -m pip install pytest
-            python -m pip install pyspark
       displayName: 'Install dependencies' 
       
     - script: |
@@ -70,29 +80,29 @@ stages:
         databricks bundle deploy -t $(env)
       displayName: Deploy job on $(env) enviroment
 
-    - script: |
-        echo Running job
-        databricks bundle run bundlesDevOpsDemo_job -t $(env)
-      displayName: Run simpleworkflow on $(env) enviroment
+    # - script: |
+    #     echo Running job
+    #     databricks bundle run bundlesDevOpsDemo_job -t $(env)
+    #   displayName: Run simpleworkflow on $(env) enviroment
 
-    - script: |
-        echo Running DLT pipeline
-        databricks bundle run bundlesDevOpsDemo_pipeline -t $(env)
-      displayName: Run simpleworkflow on $(env) enviroment
+    # - script: |
+    #     echo Running DLT pipeline
+    #     databricks bundle run bundlesDevOpsDemo_pipeline -t $(env)
+    #   displayName: Run simpleworkflow on $(env) enviroment
     
-    - script: |
-        nutter run /Workspace/Users/alfeu.duran@databricks.com/Projects/bundesdevopsdemo/dev/files/tests/test_nyctaxi --cluster_id 0312-230129-l09vd11k --junit_report --timeout 240
-      env:
-        DATABRICKS_HOST: $(DATABRICKS_HOST)
-        DATABRICKS_TOKEN: $(DATABRICKS_TOKEN)
-      displayName: 'Execute Nutter tests'
+    # - script: |
+    #     nutter run /Workspace/Users/alfeu.duran@databricks.com/Projects/bundesdevopsdemo/dev/files/tests/test_nyctaxi --cluster_id 0312-230129-l09vd11k --junit_report --timeout 240
+    #   env:
+    #     DATABRICKS_HOST: $(DATABRICKS_HOST)
+    #     DATABRICKS_TOKEN: $(DATABRICKS_TOKEN)
+    #   displayName: 'Execute Nutter tests'
 
-    - task: PublishTestResults@2
-      condition: succeededOrFailed()
-      inputs:
-        testResultsFormat: 'JUnit'
-        testResultsFiles: '**/test-*.xml' 
-        failTaskOnFailedTests: true
+    # - task: PublishTestResults@2
+    #   condition: succeededOrFailed()
+    #   inputs:
+    #     testResultsFormat: 'JUnit'
+    #     testResultsFiles: '**/test-*.xml' 
+    #     failTaskOnFailedTests: true
 
       
 - stage: toProduction

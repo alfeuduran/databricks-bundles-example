@@ -13,11 +13,11 @@ targets:
     # - Deployed resources get prefixed with '[dev my_user_name]'
     # - Any job schedules and triggers are paused by default
     # - The 'development' mode is used for Delta Live Tables pipelines
-    mode: development
+    # mode: development
     default: true
     workspace:
       host: https://adb-8876629969026717.17.azuredatabricks.net
-      root_path: /Workspace/Users/alfeu.duran@databricks.com/Projects/${bundle.name}/${bundle.target}
+      # root_path: /Workspace/Users/alfeu.duran@databricks.com/Projects/${bundle.name}/${bundle.target}
       
 
   ## Optionally, there could be a 'staging' target here.
