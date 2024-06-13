@@ -1,10 +1,3 @@
-variables:
-  - group: 'bundleVariables'
-  - name: 'branchName'
-    ${{ if startsWith(variables['Build.SourceBranch'], 'refs/heads/') }}:
-      value: $[ replace(variables['Build.SourceBranch'], 'refs/heads/', '') ] 
-    ${{ if startsWith(variables['Build.SourceBranch'], 'refs/pull/') }}:
-      value: $[ replace(variables['System.PullRequest.SourceBranch'], 'refs/heads/', '') ]
 trigger:
   batch: true
   branches:
@@ -21,7 +14,7 @@ stages:
   variables:
     - group: releaseVariables
   condition: |
-    eq(variables['Build.SourceBranch'], 'refs/heads/dev')
+    eq(variables['Build.SourceBranch'], 'refs/heads/main') # mudei para testes
   jobs:
   - job: onReleaseJob
     pool:
@@ -38,7 +31,7 @@ stages:
     
     - task: AzureCLI@2
       inputs:
-        azureSubscription: alfeutestsp
+        azureSubscription: alfeutestspnovo
         scriptType: 'bash'
         scriptLocation: 'inlineScript'
         inlineScript: |
@@ -80,36 +73,36 @@ stages:
         databricks bundle deploy -t $(env)
       displayName: Deploy job on $(env) enviroment
 
-    # - script: |
-    #     echo Running job
-    #     databricks bundle run bundlesDevOpsDemo_job -t $(env)
-    #   displayName: Run simpleworkflow on $(env) enviroment
+    - script: |
+        echo Running job
+        databricks bundle run bundlesDevOpsDemo_job -t $(env)
+      displayName: Run simpleworkflow on $(env) enviroment
 
-    # - script: |
-    #     echo Running DLT pipeline
-    #     databricks bundle run bundlesDevOpsDemo_pipeline -t $(env)
-    #   displayName: Run simpleworkflow on $(env) enviroment
+    - script: |
+        echo Running DLT pipeline
+        databricks bundle run bundlesDevOpsDemo_pipeline -t $(env)
+      displayName: Run simpleworkflow on $(env) enviroment
     
-    # - script: |
-    #     nutter run /Workspace/Users/alfeu.duran@databricks.com/Projects/bundesdevopsdemo/dev/files/tests/test_nyctaxi --cluster_id 0312-230129-l09vd11k --junit_report --timeout 240
-    #   env:
-    #     DATABRICKS_HOST: $(DATABRICKS_HOST)
-    #     DATABRICKS_TOKEN: $(DATABRICKS_TOKEN)
-    #   displayName: 'Execute Nutter tests'
+    - script: |
+        nutter run /Workspace/Users/alfeu.duran@databricks.com/Projects/bundesdevopsdemo/dev/files/tests/test_nyctaxi --cluster_id 0312-230129-l09vd11k --junit_report --timeout 240
+      env:
+        DATABRICKS_HOST: $(DATABRICKS_HOST)
+        DATABRICKS_TOKEN: $(DATABRICKS_TOKEN)
+      displayName: 'Execute Nutter tests'
 
-    # - task: PublishTestResults@2
-    #   condition: succeededOrFailed()
-    #   inputs:
-    #     testResultsFormat: 'JUnit'
-    #     testResultsFiles: '**/test-*.xml' 
-    #     failTaskOnFailedTests: true
+    - task: PublishTestResults@2
+      condition: succeededOrFailed()
+      inputs:
+        testResultsFormat: 'JUnit'
+        testResultsFiles: '**/test-*.xml' 
+        failTaskOnFailedTests: true
 
       
 - stage: toProduction
   variables:
     - group: PrdVariables
   condition: |
-    eq(variables['Build.SourceBranch'], 'refs/heads/main')
+    eq(variables['Build.SourceBranch'], 'refs/heads/test')
   dependsOn: onRelease
   jobs:
   - job: onReleaseJob
