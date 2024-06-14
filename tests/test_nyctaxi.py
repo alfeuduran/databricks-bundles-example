@@ -28,6 +28,6 @@ result = test.execute_tests()
 # Print the test results
 print(result.to_string())
 
-is_job = dbutils.notebook.entry_point.getDbutils().notebook().getContext().currentRunId().isDefined()
-if is_job:
-  result.exit(dbutils)
+# is_job = dbutils.notebook.entry_point.getDbutils().notebook().getContext().currentRunId().isDefined()
+# if is_job:
+#   result.exit(dbutils)
