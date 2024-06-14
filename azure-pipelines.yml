@@ -89,7 +89,7 @@ stages:
       displayName: Run simpleworkflow on $(env) enviroment
     
     - script: |
-        nutter run /Workspace/Users/alfeu.duran@databricks.com/Projects/bundesdevopsdemo/dev/files/tests/test_nyctaxi --cluster_id 0614-140310-8igaasv5 --junit_report --timeout 240
+        nutter run /Workspace/Users/alfeu.duran@databricks.com/Projects/bundlesDevOpsDemo/dev/files/tests/test_nyctaxi --cluster_id 0614-140310-8igaasv5 --junit_report --timeout 240
       env:
         DATABRICKS_HOST: $(DATABRICKS_HOST)
         DATABRICKS_TOKEN: $(DATABRICKS_TOKEN)
