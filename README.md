@@ -15,7 +15,7 @@ $ databricks bundle init
     $ databricks configure
     ```
 
-3. Uma vez que temos os código gerados pelo comando de init , temos que instalar as dependências de Python
+3. Install python dependencies
    ```
    $ pip install -r requitiments.dev.txt
    ```
@@ -134,6 +134,8 @@ Upon completion, the pipeline artifacts are available in the configured Databric
 
 Refer to the Databricks asset bundles documentation for more detailed information on project configurations and CI/CD integrations.
 [Databricks asset bundles documentation](https://docs.databricks.com/en/dev-tools/bundles/index.html)
+
+## Blog
 
 
 
