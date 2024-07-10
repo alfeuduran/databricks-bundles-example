@@ -13,5 +13,5 @@ targets:
     mode: production
     workspace:
       host: https://adb-3457621802558823.3.azuredatabricks.net/
-      root_path: /Users/alfeu.duran@databricks.com/.bundle/${bundle.name}/${bundle.target}
+      root_path: /Workspace/Users/alfeu.duran@databricks.com/Projects/${bundle.name}/${bundle.target}
     
