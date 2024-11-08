@@ -1,0 +1,42 @@
+name: Databricks Deployment Workflow
+
+on:
+  push:
+    branches:
+      - 'releases'
+      - 'main'
+    paths-ignore:
+      - 'README.md'
+      - 'LICENSE'
+      - '.github/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-20.04
+    env:
+      DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+
+      - name: Login to Azure
+        uses: azure/login@v1
+        with:
+          creds: |
+            {
+              "clientId": "${{ secrets.AZURE_CLIENT_ID }}",
+              "clientSecret": "${{ secrets.AZURE_CLIENT_SECRET }}",
+              "tenantId": "${{ secrets.AZURE_TENANT_ID }}",
+              "subscriptionId": "<YOUR_SUBSCRIPTION_ID>"
+            }
+
+      - name: Get Databricks access token
+        run: |
+          echo "Getting access token..."
+          DATABRICKS_TOKEN=$(az account get-access-token --resource 2ff814a6-3304-4ab8-85cb-cd0e6f879c1d --query "accessToken" -o tsv)
+          echo "DATABRICKS_TOKEN=$DATABRICKS_TOKEN" >> $GITHUB_ENV
